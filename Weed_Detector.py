@@ -1,12 +1,9 @@
 import os
 import cv2
 import zipfile
-import shapefile
 import numpy as np
 import streamlit as st
 from io import BytesIO
-from shapely.geometry import Polygon
-import matplotlib.pyplot as plt
 from PIL import Image
 from ultralytics import YOLO
 from utils import create_shapefile_with_latlon
