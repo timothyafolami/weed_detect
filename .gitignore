@@ -3,3 +3,7 @@ IMAGE
 detect
 COORDINATES
 __pycache__
+.streamlit
+templates
+slices
+ortho_01.tif

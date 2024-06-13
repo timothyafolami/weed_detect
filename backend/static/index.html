@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weed Detection</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .progress {
+            display: none;
+            width: 100%;
+            background-color: #f3f3f3;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        .progress-bar {
+            width: 0%;
+            height: 20px;
+            background-color: #4caf50;
+            border-radius: 8px;
+            text-align: center;
+            color: white;
+        }
+        .button {
+            display: inline-block;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            text-align: center;
+            text-decoration: none;
+            outline: none;
+            color: #fff;
+            background-color: #4CAF50;
+            border: none;
+            border-radius: 8px;
+            box-shadow: 0 5px #999;
+        }
+        .button:hover {background-color: #3e8e41}
+        .button:active {
+            background-color: #3e8e41;
+            box-shadow: 0 3px #666;
+            transform: translateY(2px);
+        }
+        .button[disabled] {
+            background-color: #ddd;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Weed Detection and Shapefile Creation</h1>
+    <input type="file" id="fileInput" accept=".tif">
+    <button class="button" id="uploadButton">Upload and Detect</button>
+    <div class="progress" id="uploadProgress">
+        <div class="progress-bar" id="uploadProgressBar">0%</div>
+    </div>
+    <div id="message"></div>
+</div>
+
+<script>
+    document.getElementById('uploadButton').addEventListener('click', async () => {
+        const fileInput = document.getElementById('fileInput');
+        if (fileInput.files.length === 0) {
+            alert('Please select a file to upload.');
+            return;
+        }
+
+        const file = fileInput.files[0];
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const progressBar = document.getElementById('uploadProgressBar');
+        const progressContainer = document.getElementById('uploadProgress');
+        const messageDiv = document.getElementById('message');
+
+        progressContainer.style.display = 'block';
+        progressBar.style.width = '0%';
+        progressBar.textContent = '0%';
+        messageDiv.innerHTML = '';
+
+        try {
+            const response = await fetch('http://127.0.0.1:8000/upload/', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'Accept': 'application/json',
+                },
+                onprogress: (event) => {
+                    if (event.lengthComputable) {
+                        const percentComplete = (event.loaded / event.total) * 100;
+                        progressBar.style.width = percentComplete + '%';
+                        progressBar.textContent = Math.floor(percentComplete) + '%';
+                    }
+                }
+            });
+
+            if (response.ok) {
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = 'weed_detections.zip';
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+
+                progressBar.style.width = '100%';
+                progressBar.textContent = '100%';
+                messageDiv.innerHTML = '<p>Weed detection complete. <a href="' + url + '" download="weed_detections.zip">Download the shapefile ZIP</a></p>';
+            } else {
+                messageDiv.innerHTML = '<p>Error: ' + response.statusText + '</p>';
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            messageDiv.innerHTML = '<p>Error: ' + error.message + '</p>';
+        }
+    });
+</script>
+
+</body>
+</html>
