@@ -7,3 +7,5 @@ __pycache__
 templates
 slices
 ortho_01.tif
+clip.tif
+backend/uploaded_geotiff.tif
