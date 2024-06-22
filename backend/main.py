@@ -1,40 +1,23 @@
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, UploadFile, File
+from fastapi.responses import JSONResponse, HTMLResponse, StreamingResponse
+from fastapi.staticfiles import StaticFiles
 import os
 import cv2
 import zipfile
 import shapefile
 import numpy as np
-from io import BytesIO
-from fastapi import FastAPI, UploadFile, File
-from fastapi.responses import JSONResponse, FileResponse
 from shapely.geometry import Polygon
-import matplotlib.pyplot as plt
+from io import BytesIO
 from PIL import Image
 import rasterio
 from rasterio.windows import Window
 from ultralytics import YOLO
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse
+from typing import List
 
-# Initialize FastAPI app
 app = FastAPI()
 
-# Allow CORS for all origins (for development purposes)
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# Serve the static files (HTML, CSS, JS)
+# Mount static files
 app.mount("/static", StaticFiles(directory="static"), name="static")
-
-@app.get("/", response_class=HTMLResponse)
-async def serve_index():
-    with open("index.html") as f:
-        return f.read()
 
 # Define paths
 path_to_store_bounding_boxes = 'detect/'
@@ -49,6 +32,24 @@ os.makedirs("slices", exist_ok=True)
 model = YOLO('new_yolov8_best.pt')
 
 class_names = ["citrus area", "trees", "weeds", "weeds and trees"]
+
+# WebSocket manager
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: List[WebSocket] = []
+
+    async def connect(self, websocket: WebSocket):
+        await websocket.accept()
+        self.active_connections.append(websocket)
+
+    def disconnect(self, websocket: WebSocket):
+        self.active_connections.remove(websocket)
+
+    async def send_message(self, message: str):
+        for connection in self.active_connections:
+            await connection.send_text(message)
+
+manager = ConnectionManager()
 
 # Function to slice the GeoTIFF
 def slice_geotiff(file_path, slice_size=3000):
@@ -87,7 +88,7 @@ def create_shapefile_with_latlon(bboxes, shapefile_path="weed_detections.shp"):
     w.close()
 
 # Function to detect weeds in image slices
-def detect_weeds_in_slices(slices):
+async def detect_weeds_in_slices(slices):
     weed_bboxes = []
     img_width, img_height = slice_size, slice_size  # Assuming fixed slice size
 
@@ -115,31 +116,36 @@ def detect_weeds_in_slices(slices):
 
     create_shapefile_with_latlon(weed_bboxes)
 
-@app.post("/upload/")
+@app.post("/upload_geotiff/")
 async def upload_geotiff(file: UploadFile = File(...)):
     file_location = f"uploaded_geotiff.tif"
     with open(file_location, "wb") as f:
-        f.write(await file.read())
+        f.write(file.file.read())
 
+    await manager.send_message("GeoTIFF file uploaded successfully. Slicing started.")
     slices = slice_geotiff(file_location, slice_size)
-    detect_weeds_in_slices(slices)
+    await manager.send_message("Slicing complete. Starting weed detection.")
+    await detect_weeds_in_slices(slices)
+    await manager.send_message("Weed detection complete. Generating shapefile.")
 
-    # Create ZIP file of the shapefile components
     zip_buffer = BytesIO()
     with zipfile.ZipFile(zip_buffer, 'w') as zip_file:
         for filename in ['weed_detections.shp', 'weed_detections.shx', 'weed_detections.dbf']:
             zip_file.write(filename, os.path.basename(filename))
     zip_buffer.seek(0)
 
-    return FileResponse(zip_buffer, filename="weed_detections.zip", media_type="application/zip")
+    return StreamingResponse(zip_buffer, media_type="application/zip", headers={"Content-Disposition": "attachment;filename=weed_detections.zip"})
 
-@app.get("/detect/")
-async def detect():
-    # Detect weeds in slices
-    detect_weeds_in_slices(slices)
-    
-    return JSONResponse(content={"message": "Weed detection complete. Shapefile generated."})
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    await manager.connect(websocket)
+    try:
+        while True:
+            data = await websocket.receive_text()
+            await manager.send_message(f"Message text was: {data}")
+    except WebSocketDisconnect:
+        manager.disconnect(websocket)
 
-@app.get("/shapefile/")
-async def download_shapefile():
-    return FileResponse(path_to_save_shapefile, filename="weed_detections.shp", media_type="application/octet-stream")
+@app.get("/")
+async def get():
+    return HTMLResponse(open("static/index.html").read())
