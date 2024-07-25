@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weed Detection</title>
+    <link rel="stylesheet" href="/static/styles/app.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+</head>
+<body>
+<div class="container">
+    <h1>Weed Detection and Shapefile Creation</h1>
+    <div class="file-upload">
+        <input type="file" id="fileInput" accept=".tif">
+        <label for="fileInput" class="file-label"><i class="fas fa-upload"></i> Choose a GeoTIFF file</label>
+    </div>
+    <button class="button" id="uploadButton">Upload and Detect</button>
+    <div class="progress" id="uploadProgress">
+        <div class="progress-bar" id="uploadProgressBar">0%</div>
+    </div>
+    <div id="message"></div>
+</div>
+<script src="/static/scripts/app.js"></script>
+</body>
+</html>

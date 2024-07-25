@@ -1,0 +1,16 @@
+version: '3.9'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+    environment:
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_KEY=${SUPABASE_KEY}
+      - USER_EMAIL_1=${USER_EMAIL_1}
+      - USER_PASSWORD_1=${USER_PASSWORD_1}

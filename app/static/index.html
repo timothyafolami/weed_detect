@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weed Detection Registration</title>
+    <link rel="stylesheet" href="/static/styles/index.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+</head>
+<body>
+<div class="container">
+    <h1>Register to Use Weed Detection</h1>
+    <form id="registrationForm">
+        <div class="input-group">
+            <i class="fas fa-user"></i>
+            <input type="text" id="name" name="name" placeholder="Name" required>
+        </div>
+        
+        <div class="input-group">
+            <i class="fas fa-envelope"></i>
+            <input type="email" id="email" name="email" placeholder="Email" required>
+        </div>
+        
+        <div class="input-group">
+            <i class="fas fa-phone"></i>
+            <input type="tel" id="phone" name="phone" placeholder="Phone Number" required>
+        </div>
+        
+        <div class="input-group">
+            <i class="fas fa-home"></i>
+            <input type="text" id="address" name="address" placeholder="Address" required>
+        </div>
+        
+        <button type="submit" class="button">Register</button>
+    </form>
+    <div id="message"></div>
+</div>
+<script src="/static/scripts/index.js"></script>
+</body>
+</html>
